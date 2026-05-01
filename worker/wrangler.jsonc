@@ -1,0 +1,17 @@
+{
+  "name": "meta-ads-automation",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-30",
+  "triggers": {
+    "crons": ["*/30 * * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CONFIG_KV",
+      "id": "placeholder_id"
+    }
+  ],
+  "vars": {
+    "FRONTEND_URL": "https://meta-ads-dashboard.vercel.app"
+  }
+}
