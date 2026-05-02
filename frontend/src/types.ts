@@ -262,4 +262,3 @@ export interface LegacyCampaign {
 
 export type Campaign = LegacyCampaign;
 export type CampaignEnriched = CampaignDecisionRow;
-
