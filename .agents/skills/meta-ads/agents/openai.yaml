@@ -1,0 +1,6 @@
+interface:
+  display_name: "Meta Ads"
+  short_description: "Repo-specific patterns and workflows for meta-ads"
+  default_prompt: "Use the meta-ads repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
