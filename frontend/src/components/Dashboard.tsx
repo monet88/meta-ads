@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import type { Campaign, RuleConfig } from "@/types";
+import type { AdAccount, ApiSuccessResponse, Campaign, RuleConfig } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,27 +8,53 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Activity, Settings, RefreshCw, AlertCircle, PlayCircle, PauseCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Activity, Settings, RefreshCw, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
   const [config, setConfig] = useState<RuleConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [health, setHealth] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [health, setHealth] = useState<{ status?: string } | null>(null);
   const [sortKey, setSortKey] = useState<string>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
+  const fetchAccounts = async () => {
+    setAccountsLoading(true);
+    try {
+      const [accountsRes, healthRes] = await Promise.all([
+        apiFetch<ApiSuccessResponse<AdAccount[]>>("/api/ad-accounts"),
+        apiFetch<ApiSuccessResponse<{ status?: string }>>("/api/health")
+      ]);
+      setAdAccounts(accountsRes.data || []);
+      setHealth(healthRes.data);
+    } catch (e) {
+      console.error("Error fetching accounts:", e);
+    } finally {
+      setAccountsLoading(false);
+    }
+  };
+
   const fetchData = async () => {
+    if (!selectedAccountId) {
+      setCampaigns([]);
+      setConfig(null);
+      return;
+    }
+
     setLoading(true);
     try {
-      const [campsRes, configRes, healthRes] = await Promise.all([
-        apiFetch("/api/campaigns"),
-        apiFetch("/api/config"),
-        apiFetch("/api/health")
+      const accountQuery = `accountId=${encodeURIComponent(selectedAccountId)}`;
+      const [campsRes, configRes, logsRes] = await Promise.all([
+        apiFetch<ApiSuccessResponse<Campaign[]>>(`/api/campaigns?${accountQuery}`),
+        apiFetch<ApiSuccessResponse<RuleConfig>>(`/api/config?${accountQuery}`),
+        apiFetch(`/api/logs?${accountQuery}`)
       ]);
+      void logsRes;
       setCampaigns(campsRes.data || []);
       setConfig(configRes.data);
-      setHealth(healthRes);
     } catch (e) {
       console.error("Error fetching data:", e);
     } finally {
@@ -37,15 +63,20 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60000); // refresh every minute
-    return () => clearInterval(interval);
+    fetchAccounts();
   }, []);
 
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
+    return () => clearInterval(interval);
+  }, [selectedAccountId]);
+
   const handleConfigSave = async () => {
-    if (!config) return;
+    if (!config || !selectedAccountId) return;
     try {
-      await apiFetch("/api/config", {
+      const accountQuery = `accountId=${encodeURIComponent(selectedAccountId)}`;
+      await apiFetch(`/api/config?${accountQuery}`, {
         method: "PUT",
         body: JSON.stringify(config)
       });
@@ -69,30 +100,37 @@ export default function Dashboard() {
     return sortOrder === "asc" ? <ArrowUp className="ml-2 h-4 w-4 inline-block" /> : <ArrowDown className="ml-2 h-4 w-4 inline-block" />;
   };
 
+  const getSpend = (campaign: Campaign) => campaign.insights?.spend ?? 0;
+  const getPurchases = (campaign: Campaign) => campaign.insights?.purchases ?? 0;
+
+  const getActionWeight = (campaign: Campaign) => {
+    const spend = getSpend(campaign);
+    const purchases = getPurchases(campaign);
+
+    if (campaign.status === 'ACTIVE' && (
+      (spend > (config?.pauseThreshold ?? 9999) && purchases === 0) ||
+      (spend > (config?.pauseThreshold2 ?? 9999) && purchases < 2)
+    )) return 2;
+    if (campaign.status === 'PAUSED' && spend < (config?.resumeThreshold ?? 0) && purchases > 0) return 1;
+    return 0;
+  };
+
+  const shouldPause = (campaign: Campaign) => getActionWeight(campaign) === 2;
+  const shouldResume = (campaign: Campaign) => getActionWeight(campaign) === 1;
+
   const sortedCampaigns = [...campaigns].sort((a, b) => {
-    let aVal: any = a[sortKey as keyof Campaign];
-    let bVal: any = b[sortKey as keyof Campaign];
+    let aVal: string | number = a[sortKey as keyof Campaign]?.toString().toLowerCase() || '';
+    let bVal: string | number = b[sortKey as keyof Campaign]?.toString().toLowerCase() || '';
 
     if (sortKey === 'spend') {
-      aVal = parseFloat(a.insights?.spend || '0');
-      bVal = parseFloat(b.insights?.spend || '0');
+      aVal = getSpend(a);
+      bVal = getSpend(b);
     } else if (sortKey === 'purchases') {
-      aVal = a.insights?.purchases || 0;
-      bVal = b.insights?.purchases || 0;
+      aVal = getPurchases(a);
+      bVal = getPurchases(b);
     } else if (sortKey === 'action') {
-      const getActionWeight = (camp: Campaign) => {
-        if (camp.status === 'ACTIVE' && (
-          (parseFloat(camp.insights?.spend || '0') > (config?.pauseThreshold || 9999) && (camp.insights?.purchases || 0) === 0) ||
-          (parseFloat(camp.insights?.spend || '0') > (config?.pauseThreshold2 || 9999) && (camp.insights?.purchases || 0) < 2)
-        )) return 2;
-        if (camp.status === 'PAUSED' && parseFloat(camp.insights?.spend || '0') < (config?.resumeThreshold || 0) && (camp.insights?.purchases || 0) > 0) return 1;
-        return 0;
-      };
       aVal = getActionWeight(a);
       bVal = getActionWeight(b);
-    } else if (sortKey === 'name' || sortKey === 'status') {
-      aVal = aVal?.toString().toLowerCase() || '';
-      bVal = bVal?.toString().toLowerCase() || '';
     }
 
     if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
@@ -120,11 +158,36 @@ export default function Dashboard() {
                 <AlertCircle className="w-4 h-4 mr-1" /> API Disconnected
               </Badge>
             )}
-            <Button onClick={fetchData} variant="outline" size="icon" disabled={loading}>
+            <Button onClick={fetchData} variant="outline" size="icon" disabled={loading || !selectedAccountId}>
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Ad Account</CardTitle>
+            <CardDescription>Select an account before loading campaigns and rules.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Label htmlFor="ad-account">Account</Label>
+            <select
+              id="ad-account"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={selectedAccountId}
+              onChange={(event) => setSelectedAccountId(event.target.value)}
+              disabled={accountsLoading}
+            >
+              <option value="">{accountsLoading ? "Loading accounts..." : "Chọn account trước"}</option>
+              {adAccounts.map((account) => (
+                <option key={account.id} value={account.account_id}>
+                  {account.name} ({account.account_id})
+                </option>
+              ))}
+            </select>
+            {!selectedAccountId && <p className="text-sm text-slate-500">Chọn account trước.</p>}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Main Content: Campaigns */}
@@ -156,7 +219,13 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {campaigns.length === 0 ? (
+                    {!selectedAccountId ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-slate-500 py-8">
+                          Chọn account trước.
+                        </TableCell>
+                      </TableRow>
+                    ) : campaigns.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-slate-500 py-8">
                           No campaigns found.
@@ -173,15 +242,12 @@ export default function Dashboard() {
                               {camp.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">{parseFloat(camp.insights?.spend?.toString() || '0').toLocaleString('vi-VN')} ₫</TableCell>
-                          <TableCell className="text-right">{camp.insights?.purchases || 0}</TableCell>
+                          <TableCell className="text-right">{getSpend(camp).toLocaleString('vi-VN')} ₫</TableCell>
+                          <TableCell className="text-right">{getPurchases(camp)}</TableCell>
                           <TableCell className="text-right">
-                            {camp.status === 'ACTIVE' && (
-                              (parseFloat(camp.insights?.spend || '0') > (config?.pauseThreshold || 9999) && (camp.insights?.purchases || 0) === 0) ||
-                              (parseFloat(camp.insights?.spend || '0') > (config?.pauseThreshold2 || 9999) && (camp.insights?.purchases || 0) < 2)
-                            ) ? (
+                            {shouldPause(camp) ? (
                               <Badge variant="destructive" className="ml-auto">Will Pause</Badge>
-                            ) : camp.status === 'PAUSED' && parseFloat(camp.insights?.spend || '0') < (config?.resumeThreshold || 0) && (camp.insights?.purchases || 0) > 0 ? (
+                            ) : shouldResume(camp) ? (
                               <Badge className="bg-green-500 ml-auto">Will Resume</Badge>
                             ) : (
                               <span className="text-slate-400 text-sm">Monitoring</span>
@@ -207,7 +273,9 @@ export default function Dashboard() {
                 <CardDescription>Configure thresholds for pausing and resuming.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {config ? (
+                {!selectedAccountId ? (
+                  <p className="text-sm text-slate-500">Chọn account trước.</p>
+                ) : config ? (
                   <>
                     <div className="flex items-center justify-between">
                       <Label htmlFor="enabled" className="text-base font-medium">Enable Automation</Label>
@@ -247,7 +315,7 @@ export default function Dashboard() {
                         onChange={(e) => setConfig({ ...config, resumeThreshold: Number(e.target.value) })}
                       />
                     </div>
-                    <Button className="w-full" onClick={handleConfigSave}>
+                    <Button className="w-full" onClick={handleConfigSave} disabled={!selectedAccountId}>
                       Save Configuration
                     </Button>
                   </>
