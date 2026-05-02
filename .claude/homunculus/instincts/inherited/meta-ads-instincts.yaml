@@ -1,0 +1,517 @@
+# Instincts generated from https://github.com/monet88/meta-ads
+# Generated: 2026-05-02T09:23:23.299Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: meta-ads-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, chore, feat, test
+
+## Evidence
+
+- 5 commits analyzed
+- Detected conventional commit pattern
+- Examples: chore: add gstack skill routing rules, fix(worker): harden KV/D1 failure handling in automation
+
+---
+id: meta-ads-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Commit Length
+
+## Action
+
+Write moderate-length commit messages (~55 characters)
+
+## Evidence
+
+- Average commit message length: 55 chars
+- Based on 5 commits
+
+---
+id: meta-ads-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: meta-ads-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: meta-ads-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: 
+
+---
+id: meta-ads-test-framework
+trigger: "when writing tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Test Framework
+
+## Action
+
+Use vitest as the test framework
+
+## Evidence
+
+- Test framework detected: vitest
+- File pattern: *.spec.ts
+
+---
+id: meta-ads-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Test Naming
+
+## Action
+
+Name test files using the pattern: *.spec.ts
+
+## Evidence
+
+- File pattern: *.spec.ts
+- Consistent across test files
+
+---
+id: meta-ads-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Test Types
+
+## Action
+
+Write unit, integration tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration
+- Coverage config: no
+
+---
+id: meta-ads-workflow-feature-development-with-tests-and-schema
+trigger: "when doing feature development with tests and schema"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Workflow Feature Development With Tests And Schema
+
+## Action
+
+Follow the feature-development-with-tests-and-schema workflow:
+1. Update or add SQL migration files for schema changes
+2. Modify backend logic or API handlers
+3. Update shared type definitions (frontend/src/types.ts, worker/src/types.ts)
+4. Update or add frontend components if needed
+5. Update package files if dependencies or scripts change
+6. Write or update vitest test files for new logic
+7. Update configuration files for test/build as needed
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: worker/migrations/*.sql, worker/src/*.ts, worker/src/types.ts
+
+---
+id: meta-ads-workflow-add-or-update-shared-types
+trigger: "when doing add or update shared types"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Workflow Add Or Update Shared Types
+
+## Action
+
+Follow the add-or-update-shared-types workflow:
+1. Edit frontend/src/types.ts
+2. Edit worker/src/types.ts
+3. Update related implementation files to use new or changed types
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: frontend/src/types.ts, worker/src/types.ts
+
+---
+id: meta-ads-workflow-test-suite-expansion-or-setup
+trigger: "when doing test suite expansion or setup"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/monet88/meta-ads
+---
+
+# Meta Ads Workflow Test Suite Expansion Or Setup
+
+## Action
+
+Follow the test-suite-expansion-or-setup workflow:
+1. Add new test files under worker/test/
+2. Edit or add test setup/configuration files (e.g., setup.ts, tsconfig.json, vitest.config.ts)
+3. Update or add test cases for new or changed logic
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: worker/test/*.ts, worker/test/tsconfig.json, worker/vitest.config.ts
+
+---
+id: meta-ads-instinct-file-naming-camelCase
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct File Naming CamelCase
+
+## Action
+
+Name the file using camelCase (e.g., myFile.ts)
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- All files in src/ use camelCase
+
+---
+id: meta-ads-instinct-function-naming-camelCase
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Function Naming CamelCase
+
+## Action
+
+Name the function using camelCase (e.g., fetchData)
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: meta-ads-instinct-class-naming-PascalCase
+trigger: "When defining a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Class Naming PascalCase
+
+## Action
+
+Name the class using PascalCase (e.g., UserManager)
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: meta-ads-instinct-constant-naming-SCREAMING_SNAKE_CASE
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Constant Naming SCREAMING_SNAKE_CASE
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE (e.g., MAX_RETRIES)
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: meta-ads-instinct-import-style-mixed
+trigger: "When importing modules"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Import Style Mixed
+
+## Action
+
+Use either default or named imports as appropriate; mixed style is acceptable
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: meta-ads-instinct-export-style-named
+trigger: "When exporting modules or functions"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Export Style Named
+
+## Action
+
+Prefer named exports over default exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: meta-ads-instinct-vitest-test-pattern
+trigger: "When writing tests for backend logic"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Vitest Test Pattern
+
+## Action
+
+Place test files in worker/test/ and name them with the .spec.ts suffix
+
+## Evidence
+
+- Pattern in testing.filePattern
+- Examples in worker/test/*.spec.ts
+
+---
+id: meta-ads-instinct-test-framework-vitest
+trigger: "When setting up or expanding tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Test Framework Vitest
+
+## Action
+
+Use the vitest framework for all tests
+
+## Evidence
+
+- Pattern in testing.framework
+- worker/vitest.config.ts present
+
+---
+id: meta-ads-instinct-test-types-unit-integration
+trigger: "When writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Test Types Unit Integration
+
+## Action
+
+Include both unit and integration tests as appropriate
+
+## Evidence
+
+- Pattern in testing.testTypes
+- Examples in worker/test/*.spec.ts
+
+---
+id: meta-ads-instinct-commit-conventional-format
+trigger: "When writing a git commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Commit Conventional Format
+
+## Action
+
+Use conventional commit prefixes: fix, chore, feat, test
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Examples: 'fix(worker): ...', 'feat(worker): ...'
+
+---
+id: meta-ads-instinct-commit-length-55
+trigger: "When composing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Commit Length 55
+
+## Action
+
+Keep the commit message concise, around 55 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: meta-ads-instinct-feature-development-workflow
+trigger: "When adding a significant new feature that affects backend, frontend, schema, and tests"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Feature Development Workflow
+
+## Action
+
+Follow the workflow: update/add migration files, modify backend logic, update shared types, update/add frontend components, update package files, write/update vitest tests, update config files
+
+## Evidence
+
+- Workflow: feature-development-with-tests-and-schema
+- Commit sequence and files involved
+
+---
+id: meta-ads-instinct-shared-types-sync-workflow
+trigger: "When adding or modifying types used by both frontend and backend"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Shared Types Sync Workflow
+
+## Action
+
+Edit frontend/src/types.ts and worker/src/types.ts, then update related implementation files
+
+## Evidence
+
+- Workflow: add-or-update-shared-types
+- Commit sequence and files involved
+
+---
+id: meta-ads-instinct-test-suite-expansion-workflow
+trigger: "When adding new tests or test setup/configuration for backend logic"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: monet88/meta-ads
+---
+
+# Meta Ads Instinct Test Suite Expansion Workflow
+
+## Action
+
+Add new test files under worker/test/, edit/add test setup/configuration files, update/add test cases
+
+## Evidence
+
+- Workflow: test-suite-expansion-or-setup
+- Commit sequence and files involved
+
