@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# Frontend Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Vite + React + TypeScript dashboard for Meta Ads Automation.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Checks Worker health.
+- Lists Meta ad accounts available to the configured backend token.
+- Requires an operator to choose an ad account before loading campaigns and rules.
+- Loads account-scoped campaigns, config, and logs from the Worker API.
+- Displays campaign spend, purchases, status, and a local action hint.
+- Saves threshold config through `PUT /api/config?accountId=...`.
+- Polls selected-account data every 60 seconds.
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev      # Start Vite dev server
+npm run build    # Type-check and build production assets
+npm run lint     # Run ESLint
+npm run preview  # Preview the built app locally
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The API base URL comes from `VITE_API_URL` and falls back to `http://localhost:8787`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Use `frontend/.env.local` when needed:
+
+```bash
+VITE_API_URL=http://localhost:8787
 ```
+
+Only `VITE_` variables are exposed to browser code. Do not place Meta tokens or API bearer tokens in frontend env files.
+
+## Local development
+
+Start the Worker first:
+
+```bash
+cd ../worker
+npm run dev
+```
+
+Then start Vite:
+
+```bash
+cd ../frontend
+npm run dev
+```
+
+Open the Vite URL, confirm the API health badge, choose an ad account, and verify campaigns/config load.
+
+## Important files
+
+- `src/main.tsx` — React mount.
+- `src/App.tsx` — renders `Dashboard`.
+- `src/components/Dashboard.tsx` — dashboard state, polling, account selection, config editing, sorting, and table rendering.
+- `src/lib/api.ts` — `apiFetch()` and API base URL resolution.
+- `src/types.ts` — frontend API types.
+- `tailwind.config.js` — Tailwind/shadcn content and theme configuration.
+
+## Current frontend gaps
+
+The dashboard still computes some action hints locally for display. The backend already returns richer decision, evidence, blocker, warning, and error fields; future frontend work should render those backend truth fields directly.
+
+Browser QA is still required for account selection, auth failure, config save, version conflict, blocked live mode, unknown data, and responsive states.
