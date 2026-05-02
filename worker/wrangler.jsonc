@@ -1,4 +1,5 @@
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "meta-ads-automation",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-30",
@@ -9,6 +10,14 @@
     {
       "binding": "CONFIG_KV",
       "id": "placeholder_id"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "AUDIT_DB",
+      "database_name": "meta-ads-audit",
+      "database_id": "placeholder_audit_db_id",
+      "migrations_dir": "./migrations"
     }
   ],
   "vars": {

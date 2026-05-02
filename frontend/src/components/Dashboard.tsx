@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Activity, Settings, RefreshCw, AlertCircle, PlayCircle, PauseCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Activity, Settings, RefreshCw, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
