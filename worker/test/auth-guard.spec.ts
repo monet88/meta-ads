@@ -146,10 +146,122 @@ describe("auth guard", () => {
     });
   });
 
+  it("requires accountId for account-scoped config reads", async () => {
+    const request = new Request("https://api.example.com/api/config", {
+      headers: {
+        Authorization: "Bearer api-test-token",
+      },
+    });
+    const ctx = createExecutionContext();
+
+    const response = await worker.fetch(request, createEnv(), ctx);
+
+    await waitOnExecutionContext(ctx);
+
+    expect(response.status).toBe(400);
+
+    const body = (await response.json()) as ApiErrorResponse;
+    expect(body.success).toBe(false);
+    expect(body.error.category).toBe("validation");
+    expect(body.error.code).toBe("MISSING_ACCOUNT_ID");
+  });
+
+  it("stores configs independently per accountId", async () => {
+    const kv = new FakeKVNamespace();
+    const payload = {
+      enabled: true,
+      dryRun: true,
+      pauseThreshold: 170000,
+      pauseThreshold2: 200000,
+      resumeThreshold: 150000,
+      cooldownHours: 24,
+      maxActionsPerRun: 0,
+      maxActionsPerDay: 0,
+      allowlistCampaignIds: [],
+      excludeCampaignIds: [],
+      emergencyStop: false,
+      arming: {
+        status: "not_armed",
+        adAccountConfirmed: false,
+        recentDryRunRunId: null,
+        recentDryRunReviewedAt: null,
+        reviewedBy: null,
+        reliabilityScore: null,
+        evidenceWindowDays: 3,
+      },
+      version: null,
+    };
+
+    const ctxA = createExecutionContext();
+    const saveA = await worker.fetch(
+      new Request("https://api.example.com/api/config?accountId=111", {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer api-test-token",
+          Origin: "https://dashboard.example.com",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...payload, pauseThreshold: 111 }),
+      }),
+      createEnv({ CONFIG_KV: kv as unknown as Env["CONFIG_KV"] }),
+      ctxA
+    );
+    await waitOnExecutionContext(ctxA);
+
+    const ctxB = createExecutionContext();
+    const saveB = await worker.fetch(
+      new Request("https://api.example.com/api/config?accountId=222", {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer api-test-token",
+          Origin: "https://dashboard.example.com",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...payload, pauseThreshold: 222 }),
+      }),
+      createEnv({ CONFIG_KV: kv as unknown as Env["CONFIG_KV"] }),
+      ctxB
+    );
+    await waitOnExecutionContext(ctxB);
+
+    expect(saveA.status).toBe(200);
+    expect(saveB.status).toBe(200);
+
+    const ctxReadA = createExecutionContext();
+    const readA = await worker.fetch(
+      new Request("https://api.example.com/api/config?accountId=111", {
+        headers: {
+          Authorization: "Bearer api-test-token",
+        },
+      }),
+      createEnv({ CONFIG_KV: kv as unknown as Env["CONFIG_KV"] }),
+      ctxReadA
+    );
+    await waitOnExecutionContext(ctxReadA);
+
+    const ctxReadB = createExecutionContext();
+    const readB = await worker.fetch(
+      new Request("https://api.example.com/api/config?accountId=222", {
+        headers: {
+          Authorization: "Bearer api-test-token",
+        },
+      }),
+      createEnv({ CONFIG_KV: kv as unknown as Env["CONFIG_KV"] }),
+      ctxReadB
+    );
+    await waitOnExecutionContext(ctxReadB);
+
+    const bodyA = (await readA.json()) as { data: { pauseThreshold: number } };
+    const bodyB = (await readB.json()) as { data: { pauseThreshold: number } };
+
+    expect(bodyA.data.pauseThreshold).toBe(111);
+    expect(bodyB.data.pauseThreshold).toBe(222);
+  });
+
   it("persists config_versions row on successful config save", async () => {
     const kv = new FakeKVNamespace();
     const db = env.AUDIT_DB!;
-    const request = new Request("https://api.example.com/api/config", {
+    const request = new Request("https://api.example.com/api/config?accountId=account-for-audit", {
       method: "PUT",
       headers: {
         Authorization: "Bearer api-test-token",

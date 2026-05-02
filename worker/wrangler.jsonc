@@ -9,18 +9,19 @@
   "kv_namespaces": [
     {
       "binding": "CONFIG_KV",
-      "id": "placeholder_id"
+      "id": "032561124bfe42d6bcaa58b3bdd983a7"
     }
   ],
   "d1_databases": [
     {
       "binding": "AUDIT_DB",
       "database_name": "meta-ads-audit",
-      "database_id": "placeholder_audit_db_id",
+      "database_id": "b4bd5e78-a138-4d05-b7d5-e9b884d0c504",
       "migrations_dir": "./migrations"
     }
   ],
   "vars": {
-    "FRONTEND_URL": "https://meta-ads-dashboard.vercel.app"
+    "FRONTEND_URL": "https://meta-ads-dashboard.vercel.app",
+    "META_ACCOUNT_ID": "1069347140701722"
   }
 }

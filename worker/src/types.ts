@@ -53,6 +53,13 @@ export type BlockerCode =
   | 'MISSING_OMNI_PURCHASE';
 export type WarningCode = 'MISSING_OMNI_PURCHASE' | 'PARTIAL_INSIGHTS' | 'INSIGHTS_UNAVAILABLE';
 
+export interface AdAccount {
+  id: string;
+  account_id: string;
+  name: string;
+  account_status: number;
+}
+
 export interface ApiValidationErrorDetail {
   field: string;
   code: string;

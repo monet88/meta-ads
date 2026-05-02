@@ -1,4 +1,4 @@
-import { Env } from './types';
+import { type AdAccount, Env } from './types';
 
 interface MetaApiError {
   message: string;
@@ -51,6 +51,11 @@ function metaHeaders(env: Env, includeJsonContentType = false): HeadersInit {
   };
 }
 
+function buildAdAccountPath(accountId: string): string {
+  const normalizedAccountId = accountId.startsWith('act_') ? accountId.slice(4) : accountId;
+  return `act_${normalizedAccountId}`;
+}
+
 async function parseMetaEnvelope<T>(response: Response, errorPrefix: string): Promise<MetaApiResponse<T>> {
   const data = (await response.json()) as MetaApiResponse<T>;
 
@@ -62,7 +67,7 @@ async function parseMetaEnvelope<T>(response: Response, errorPrefix: string): Pr
 }
 
 function buildAccountInsightsUrl(
-  env: Env,
+  accountId: string,
   options: {
     datePreset?: 'today';
     timeRange?: InsightsTimeRange;
@@ -80,11 +85,28 @@ function buildAccountInsightsUrl(
     params.set('date_preset', options.datePreset ?? 'today');
   }
 
-  return `https://graph.facebook.com/v21.0/act_${env.META_ACCOUNT_ID}/insights?${params.toString()}`;
+  return `https://graph.facebook.com/v21.0/${buildAdAccountPath(accountId)}/insights?${params.toString()}`;
 }
 
-export async function fetchActiveCampaigns(env: Env): Promise<MetaCampaignRecord[]> {
-  let nextUrl: string | null = `https://graph.facebook.com/v21.0/act_${env.META_ACCOUNT_ID}/campaigns?fields=id,name,status&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]`;
+export async function fetchAdAccounts(env: Env): Promise<AdAccount[]> {
+  let nextUrl: string | null = 'https://graph.facebook.com/v21.0/me/adaccounts?fields=id,account_id,name,account_status';
+  const accounts: AdAccount[] = [];
+
+  while (nextUrl) {
+    const response = await fetch(nextUrl, {
+      headers: metaHeaders(env),
+    });
+
+    const envelope = await parseMetaEnvelope<AdAccount[]>(response, 'Meta API Ad Accounts Error');
+    accounts.push(...(envelope.data || []));
+    nextUrl = envelope.paging?.next ?? null;
+  }
+
+  return accounts;
+}
+
+export async function fetchActiveCampaigns(env: Env, accountId = env.META_ACCOUNT_ID): Promise<MetaCampaignRecord[]> {
+  let nextUrl: string | null = `https://graph.facebook.com/v21.0/${buildAdAccountPath(accountId)}/campaigns?fields=id,name,status&filtering=[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]`;
   const campaigns: MetaCampaignRecord[] = [];
 
   while (nextUrl) {
@@ -103,11 +125,12 @@ export async function fetchActiveCampaigns(env: Env): Promise<MetaCampaignRecord
 export async function fetchAccountCampaignInsights(
   env: Env,
   options: {
+    accountId?: string;
     datePreset?: 'today';
     timeRange?: InsightsTimeRange;
   }
 ): Promise<MetaAccountInsightsRow[]> {
-  let nextUrl: string | null = buildAccountInsightsUrl(env, options);
+  let nextUrl: string | null = buildAccountInsightsUrl(options.accountId ?? env.META_ACCOUNT_ID, options);
   const rows: MetaAccountInsightsRow[] = [];
 
   while (nextUrl) {

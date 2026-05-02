@@ -226,7 +226,7 @@ describe("auto rule engine", () => {
     const db = env.AUDIT_DB!;
 
     await kv.put(
-      "RULE_CONFIG",
+      "RULE_CONFIG::123456789",
       JSON.stringify(
         createConfig({
           dryRun: true,
@@ -297,7 +297,7 @@ describe("auto rule engine", () => {
     expect(logs.results).toHaveLength(1);
     expect((logs.results[0] as { decision: string }).decision).toBe("WOULD_PAUSE");
 
-    const storedLogs = (await kv.get("RULE_LOGS", "text")) as string;
+    const storedLogs = (await kv.get("RULE_LOGS::123456789", "text")) as string;
     expect(storedLogs).toContain("WOULD_PAUSE");
   });
 
@@ -306,7 +306,7 @@ describe("auto rule engine", () => {
     const db = env.AUDIT_DB!;
 
     await kv.put(
-      "RULE_CONFIG",
+      "RULE_CONFIG::123456789",
       JSON.stringify(
         createConfig({
           dryRun: false,
@@ -384,7 +384,7 @@ describe("auto rule engine", () => {
     const kv = new FakeKVNamespace();
     const db = env.AUDIT_DB!;
 
-    await kv.put("RULE_CONFIG", JSON.stringify(createConfig()));
+    await kv.put("RULE_CONFIG::123456789", JSON.stringify(createConfig()));
     await kv.put("AUTOMATION_RUN_LOCK", JSON.stringify({ runId: "existing-run" }));
 
     const fetchMock = vi.fn();
@@ -408,7 +408,7 @@ describe("auto rule engine", () => {
     expect(logs.results).toHaveLength(1);
     expect((logs.results[0] as { decision: string }).decision).toBe("SKIPPED_LOCK");
 
-    const storedLogs = (await kv.get("RULE_LOGS", "text")) as string;
+    const storedLogs = (await kv.get("RULE_LOGS::123456789", "text")) as string;
     expect(storedLogs).toContain("SKIPPED_LOCK");
   });
 
@@ -417,7 +417,7 @@ describe("auto rule engine", () => {
     const db = env.AUDIT_DB!;
 
     await kv.put(
-      "RULE_CONFIG",
+      "RULE_CONFIG::123456789",
       JSON.stringify(
         createConfig({
           dryRun: false,
@@ -470,7 +470,7 @@ describe("auto rule engine", () => {
     expect((logs.results[0] as { source: string }).source).toBe("system");
     expect((logs.results[0] as { status: string }).status).toBe("failed");
 
-    const storedLogs = (await kv.get("RULE_LOGS", "text")) as string;
+    const storedLogs = (await kv.get("RULE_LOGS::123456789", "text")) as string;
     expect(storedLogs).toContain("AUTOMATION_RUN_FAILED");
   });
 
@@ -479,7 +479,7 @@ describe("auto rule engine", () => {
     const db = env.AUDIT_DB!;
 
     await kv.put(
-      "RULE_CONFIG",
+      "RULE_CONFIG::123456789",
       JSON.stringify(
         createConfig({
           dryRun: false,

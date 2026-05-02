@@ -1,3 +1,10 @@
+export interface AdAccount {
+  id: string;
+  account_id: string;
+  name: string;
+  account_status: number;
+}
+
 export type CampaignStatus = 'ACTIVE' | 'PAUSED';
 export type PurchaseMetric = 'omni_purchase';
 export type DecisionType =
@@ -260,5 +267,5 @@ export interface LegacyCampaign {
   } | null;
 }
 
-export type Campaign = LegacyCampaign;
+export type Campaign = CampaignDecisionRow;
 export type CampaignEnriched = CampaignDecisionRow;

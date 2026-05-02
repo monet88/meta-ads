@@ -26,11 +26,41 @@ import {
   type RunHealthSummary,
   RULE_CONFIG_DEFAULTS,
 } from './types';
-import { fetchActiveCampaigns, fetchCampaignInsights } from './meta-api-client';
+import { fetchActiveCampaigns, fetchAdAccounts, fetchCampaignInsights } from './meta-api-client';
 
 
 const RULE_CONFIG_KEY = 'RULE_CONFIG';
 const RULE_LOGS_KEY = 'RULE_LOGS';
+
+function getNamespacedKvKey(baseKey: string, accountId: string): string {
+  return `${baseKey}::${accountId}`;
+}
+
+function getRequiredAccountId(req: Request): string | Response {
+  const accountId = new URL(req.url).searchParams.get('accountId')?.trim();
+
+  if (!accountId) {
+    return jsonError(
+      {
+        category: 'validation',
+        code: 'MISSING_ACCOUNT_ID',
+        message: 'accountId query parameter is required.',
+        retryable: false,
+      },
+      { status: 400 }
+    );
+  }
+
+  return accountId.startsWith('act_') ? accountId.slice(4) : accountId;
+}
+
+function getConfigKey(accountId: string): string {
+  return getNamespacedKvKey(RULE_CONFIG_KEY, accountId);
+}
+
+function getLogsKey(accountId: string): string {
+  return getNamespacedKvKey(RULE_LOGS_KEY, accountId);
+}
 
 interface MetaActionRecord {
   action_type?: string;
@@ -780,12 +810,40 @@ function createDefaultRunHealth(): RunHealthSummary {
   };
 }
 
-export async function handleGetCampaigns(_req: Request, env: Env): Promise<Response> {
-  const configRaw = await env.CONFIG_KV.get(RULE_CONFIG_KEY, 'json');
+export async function handleGetAdAccounts(_req: Request, env: Env): Promise<Response> {
+  try {
+    const accounts = await fetchAdAccounts(env);
+
+    return jsonSuccess(accounts, {
+      meta: { total: accounts.length },
+    });
+  } catch (error: unknown) {
+    return jsonError(
+      {
+        category: 'auth',
+        code: 'AD_ACCOUNTS_FETCH_FAILED',
+        message: getErrorMessage(error),
+        retryable: true,
+      },
+      {
+        status: 502,
+        meta: { total: 0 },
+      }
+    );
+  }
+}
+
+export async function handleGetCampaigns(req: Request, env: Env): Promise<Response> {
+  const accountId = getRequiredAccountId(req);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+
+  const configRaw = await env.CONFIG_KV.get(getConfigKey(accountId), 'json');
   const config = normalizeConfig(configRaw);
 
   try {
-    const campaignsRaw = (await fetchActiveCampaigns(env)) as unknown;
+    const campaignsRaw = (await fetchActiveCampaigns(env, accountId)) as unknown;
     const campaigns = Array.isArray(campaignsRaw) ? (campaignsRaw as MetaCampaignRecord[]) : [];
 
     const rows = await Promise.all(
@@ -914,8 +972,13 @@ export async function handleGetCampaignInsights(
   }
 }
 
-export async function handleGetConfig(_req: Request, env: Env): Promise<Response> {
-  const configRaw = await env.CONFIG_KV.get(RULE_CONFIG_KEY, 'json');
+export async function handleGetConfig(req: Request, env: Env): Promise<Response> {
+  const accountId = getRequiredAccountId(req);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+
+  const configRaw = await env.CONFIG_KV.get(getConfigKey(accountId), 'json');
   const config = normalizeConfig(configRaw);
 
   return jsonSuccess(config, {
@@ -924,6 +987,11 @@ export async function handleGetConfig(_req: Request, env: Env): Promise<Response
 }
 
 export async function handlePutConfig(req: Request, env: Env): Promise<Response> {
+  const accountId = getRequiredAccountId(req);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+
   let body: unknown;
 
   try {
@@ -947,7 +1015,7 @@ export async function handlePutConfig(req: Request, env: Env): Promise<Response>
     });
   }
 
-  const currentConfig = normalizeConfig(await env.CONFIG_KV.get(RULE_CONFIG_KEY, 'json'));
+  const currentConfig = normalizeConfig(await env.CONFIG_KV.get(getConfigKey(accountId), 'json'));
   const payload = body as ConfigWriteRequest;
   const submittedVersion = typeof payload.version === 'number' ? payload.version : null;
 
@@ -1004,7 +1072,7 @@ export async function handlePutConfig(req: Request, env: Env): Promise<Response>
     );
   }
 
-  await env.CONFIG_KV.put(RULE_CONFIG_KEY, JSON.stringify(nextConfig));
+  await env.CONFIG_KV.put(getConfigKey(accountId), JSON.stringify(nextConfig));
   await persistConfigVersion(env.AUDIT_DB, {
     version: nextVersion,
     configJson: JSON.stringify(nextConfig),
@@ -1023,8 +1091,13 @@ export async function handlePutConfig(req: Request, env: Env): Promise<Response>
   });
 }
 
-export async function handleGetLogs(_req: Request, env: Env): Promise<Response> {
-  const logsRaw = await env.CONFIG_KV.get(RULE_LOGS_KEY, 'json');
+export async function handleGetLogs(req: Request, env: Env): Promise<Response> {
+  const accountId = getRequiredAccountId(req);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+
+  const logsRaw = await env.CONFIG_KV.get(getLogsKey(accountId), 'json');
   const logs = Array.isArray(logsRaw)
     ? logsRaw
         .map((log, index) => mapStoredLog(log, index))

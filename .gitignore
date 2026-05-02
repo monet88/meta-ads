@@ -31,3 +31,4 @@ Thumbs.db
 # Claude/OMC local session state
 .omc/
 plans/
+.gstack/

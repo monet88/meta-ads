@@ -3,6 +3,7 @@ import { evaluateCampaigns, executeCampaignActions, createSystemLogEntry } from 
 import { Router } from './router';
 import { handleOptions, withCors } from './cors';
 import {
+  handleGetAdAccounts,
   handleGetCampaigns,
   handleGetCampaignInsights,
   handleGetConfig,
@@ -12,6 +13,7 @@ import {
 } from './api-handlers';
 
 const DEFAULT_CONFIG: RuleConfig = RULE_CONFIG_DEFAULTS;
+const RULE_CONFIG_KEY = 'RULE_CONFIG';
 const RULE_LOGS_KEY = 'RULE_LOGS';
 const RUN_LOCK_KEY = 'AUTOMATION_RUN_LOCK';
 const RUN_LOCK_TTL_SECONDS = 60 * 25;
@@ -22,6 +24,10 @@ function getRunId(): string {
 
 function getNowIso(): string {
   return new Date().toISOString();
+}
+
+function getAccountScopedKvKey(baseKey: string, env: Env): string {
+  return env.META_ACCOUNT_ID ? `${baseKey}::${env.META_ACCOUNT_ID}` : baseKey;
 }
 
 function getLockPayload(runId: string): string {
@@ -303,9 +309,14 @@ function requireMutationOrigin(request: Request, env: Env): Response | null {
   return jsonAuthError('ORIGIN_FORBIDDEN', 'Origin or referer is not allowed for this mutation.', 403);
 }
 
-async function loadConfig(kv: KVNamespace): Promise<RuleConfig> {
+async function loadConfig(env: Env): Promise<RuleConfig> {
   try {
-    const data = await kv.get('RULE_CONFIG', 'json');
+    const accountScopedData = await env.CONFIG_KV.get(getAccountScopedKvKey(RULE_CONFIG_KEY, env), 'json');
+    if (accountScopedData) {
+      return accountScopedData as RuleConfig;
+    }
+
+    const data = await env.CONFIG_KV.get(RULE_CONFIG_KEY, 'json');
     if (data) {
       return data as RuleConfig;
     }
@@ -316,15 +327,17 @@ async function loadConfig(kv: KVNamespace): Promise<RuleConfig> {
 }
 
 async function logActions(
-  kv: KVNamespace,
+  env: Env,
   actions: Array<RuleAction | ActionLogEntry>
 ): Promise<{ ok: true } | { ok: false; error: ClassifiedError }> {
+  const logsKey = getAccountScopedKvKey(RULE_LOGS_KEY, env);
+
   try {
-    const currentLogsString = await kv.get(RULE_LOGS_KEY, 'text');
+    const currentLogsString = await env.CONFIG_KV.get(logsKey, 'text');
     const logs = currentLogsString ? (JSON.parse(currentLogsString) as Array<RuleAction | ActionLogEntry>) : [];
     const nextLogs = [...actions, ...logs].slice(0, 1000);
 
-    await kv.put(RULE_LOGS_KEY, JSON.stringify(nextLogs));
+    await env.CONFIG_KV.put(logsKey, JSON.stringify(nextLogs));
     return { ok: true };
   } catch (error) {
     const classifiedError: ClassifiedError = {
@@ -340,7 +353,7 @@ async function logActions(
 
 export default {
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext) {
-    const config = await loadConfig(env.CONFIG_KV);
+    const config = await loadConfig(env);
     if (!config.enabled) return;
 
     const runId = getRunId();
@@ -355,7 +368,7 @@ export default {
         source: 'system',
       });
 
-      const kvLogResult = await logActions(env.CONFIG_KV, [overlapLog]);
+      const kvLogResult = await logActions(env, [overlapLog]);
       const kvFailureLog =
         kvLogResult.ok
           ? null
@@ -388,7 +401,7 @@ export default {
       const rows = await evaluateCampaigns(env, config);
       const execution = await executeCampaignActions(env, rows, { runId });
       const allLogs = execution.logs.length > 0 ? execution.logs : [];
-      const kvLogResult = allLogs.length > 0 ? await logActions(env.CONFIG_KV, allLogs) : { ok: true as const };
+      const kvLogResult = allLogs.length > 0 ? await logActions(env, allLogs) : { ok: true as const };
       const kvFailureLog =
         kvLogResult.ok
           ? null
@@ -433,7 +446,7 @@ export default {
         error: classifiedError,
       });
 
-      const kvLogResult = await logActions(env.CONFIG_KV, [failureLog]);
+      const kvLogResult = await logActions(env, [failureLog]);
       const auditLogs = kvLogResult.ok
         ? [failureLog]
         : [
@@ -480,6 +493,7 @@ export default {
     }
 
     const router = new Router();
+    router.get('/api/ad-accounts', handleGetAdAccounts);
     router.get('/api/campaigns', handleGetCampaigns);
     router.get('/api/campaigns/:id/insights', handleGetCampaignInsights);
     router.get('/api/config', handleGetConfig);

@@ -231,3 +231,11 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## GBrain Configuration (configured by /setup-gbrain)
+- Engine: postgres
+- Config file: ~/.gbrain/config.json (mode 0600)
+- Setup date: 2026-05-02
+- MCP registered: yes
+- Memory sync: artifacts-only
+- Current repo policy: read-write
